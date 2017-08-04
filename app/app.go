@@ -16,18 +16,21 @@ func Run() error {
 			Repositories: []scm.Repository{
 				{
 					Type: scm.RepoType("git"),
-					Path: os.Getenv("HOME"),
+					Path: "gitrepos",
 					URL:  "git@github.com:githubtraining/hellogitworld.git",
 				},
 			},
 		},
 	}
-	cloner := scm.NewGitCloner()
+
+	baseDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	cloner := scm.NewGitCloner(baseDir)
 
 	client := prefs.NewClient(getter, time.Minute*5, cloner)
-
-	// Not doing anything yet...
-	server := prefs.NewServer(cloner)
+	server := prefs.NewServer(":8080", cloner)
 
 	var group errgroup.Group
 	group.Go(client.Run)

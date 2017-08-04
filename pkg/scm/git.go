@@ -11,10 +11,14 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
-type GitCloner struct{}
+type GitCloner struct {
+	BaseDirectory string
+}
 
-func NewGitCloner() *GitCloner {
-	return &GitCloner{}
+func NewGitCloner(baseDirectory string) *GitCloner {
+	return &GitCloner{
+		BaseDirectory: baseDirectory,
+	}
 }
 
 func (c *GitCloner) Clone(into string, url string) error {
@@ -23,12 +27,13 @@ func (c *GitCloner) Clone(into string, url string) error {
 		return errors.Wrap(err, "could not load SSH credentials")
 	}
 
-	repoDir := filepath.Join(into, strings.TrimSuffix(filepath.Base(url), ".git"))
+	repoDir := filepath.Join(c.BaseDirectory, into, strings.TrimSuffix(filepath.Base(url), ".git"))
 	_, err = git.PlainClone(repoDir, false, &git.CloneOptions{
 		Auth:              auth,
 		URL:               url,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 	})
+
 	return err
 }
 

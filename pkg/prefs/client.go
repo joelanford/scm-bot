@@ -49,7 +49,7 @@ func (c *Client) Run() error {
 					log.Println(errors.Wrapf(err, "client: could not clone repo \"%s\" into path \"%s\"", repo.URL, repo.Path))
 					continue
 				}
-				log.Printf("cloned repo \"%s\" into path \"%s\"", repo.URL, repo.Path)
+				log.Printf("client: cloned repo \"%s\" into path \"%s\"", repo.URL, repo.Path)
 			}
 		}
 		<-ticker.C

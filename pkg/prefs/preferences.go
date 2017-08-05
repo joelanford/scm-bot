@@ -29,11 +29,11 @@ func ReadFrom(r io.Reader) (Preferences, error) {
 	return &p, nil
 }
 
-type StaticGetter struct {
+type StaticPoller struct {
 	Preferences *StaticPreferences
 }
 
-func (g *StaticGetter) Get() (Preferences, error) {
+func (g *StaticPoller) Poll() (Preferences, error) {
 	if g.Preferences == nil {
 		return nil, errors.New("nil preferences")
 	}

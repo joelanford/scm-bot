@@ -11,30 +11,51 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
-type GitCloner struct {
-	BaseDirectory string
+type GitCloner struct{}
+
+func NewGitCloner() *GitCloner {
+	return &GitCloner{}
 }
 
-func NewGitCloner(baseDirectory string) *GitCloner {
-	return &GitCloner{
-		BaseDirectory: baseDirectory,
+func (c *GitCloner) Clone(into string, url string) CloneResult {
+	cr := CloneResult{
+		Success: true,
+		Error:   nil,
+		Path:    into,
+		URL:     url,
+		Type:    GitRepoType,
 	}
-}
+	if url == "" {
+		cr.Success = false
+		cr.Error = errors.New("URL is undefined")
+		return cr
+	}
 
-func (c *GitCloner) Clone(into string, url string) error {
+	repoPath := filepath.Join(into, strings.TrimSuffix(filepath.Base(url), ".git"))
+	cr.Path = repoPath
+
 	auth, err := ssh.NewPublicKeysFromFile("git", filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa"), "")
 	if err != nil {
-		return errors.Wrap(err, "could not load SSH credentials")
+		cr.Success = false
+		cr.Error = errors.Wrap(err, "could not load SSH credentials")
+		return cr
 	}
 
-	repoDir := filepath.Join(c.BaseDirectory, into, strings.TrimSuffix(filepath.Base(url), ".git"))
-	_, err = git.PlainClone(repoDir, false, &git.CloneOptions{
+	_, err = git.PlainClone(repoPath, false, &git.CloneOptions{
 		Auth:              auth,
 		URL:               url,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 	})
 
-	return err
+	if err == git.ErrRepositoryAlreadyExists {
+		cr.Success = false
+		cr.Error = ErrExists
+	} else if err != nil {
+		cr.Success = false
+		cr.Error = err
+	}
+
+	return cr
 }
 
 func (c *GitCloner) Type() RepoType {

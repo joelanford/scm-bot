@@ -26,6 +26,12 @@
   version = "v1.3.0"
 
 [[projects]]
+  name = "github.com/urfave/cli"
+  packages = ["."]
+  revision = "0bdeddeeb0f650497d603c4ad7b20cfe685682f6"
+  version = "v1.19.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/xanzy/ssh-agent"
   packages = ["."]
@@ -42,12 +48,6 @@
   name = "golang.org/x/net"
   packages = ["context"]
   revision = "f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/sync"
-  packages = ["errgroup"]
-  revision = "f52d1811a62927559de87708c8913c1650ce4f26"
 
 [[projects]]
   name = "gopkg.in/src-d/go-billy.v3"
@@ -70,6 +70,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "570144561f4ba3222607782cfa14f22ec20863d66130a3ba53679dfd7edeb7f8"
+  inputs-digest = "0a728ecf0269f2e1993b1d7c1d3802c4bc6fa56c458972dd6e467ce2fd477749"
   solver-name = "gps-cdcl"
   solver-version = 1

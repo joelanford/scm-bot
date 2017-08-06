@@ -4,11 +4,12 @@ set -e
 
 PACKAGE="github.com/joelanford/scm-bot/app"
 APP_NAME="scm-bot"
-VERSION=$(git describe --always --dirty --long)
+TAG=$(git tag -l --points-at HEAD)
+VERSION=${TAG:-$(git describe --always --dirty --long)}
 BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M:%S.%N %z %Z')
-USER=${USER:=$USERNAME}
+USER=${USER:-$USERNAME}
 GIT_HASH=$(git rev-parse HEAD)
-GIT_BRANCH=${TRAVIS_BRANCH:=$(git rev-parse --abbrev-ref HEAD)}
+GIT_BRANCH=${TRAVIS_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
 
 DOCKER_REPO=joelanford/scm-bot
 

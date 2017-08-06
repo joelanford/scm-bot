@@ -30,10 +30,22 @@ function buildDocker() {
 }
 
 function pushDocker() {
-    [[ ${GIT_BRANCH} != feature/* ]] && docker push ${DOCKER_REPO}:${VERSION} || return 0
-    [[ ${GIT_BRANCH} == "master" ]] && docker tag ${DOCKER_REPO}:${VERSION} ${DOCKER_REPO}:latest && docker push ${DOCKER_REPO}:latest
-    [[ ${GIT_BRANCH} == release/* ]] && docker tag ${DOCKER_REPO}:${VERSION} ${DOCKER_REPO}:beta && docker push ${DOCKER_REPO}:beta
-    [[ ${GIT_BRANCH} == "develop" ]] && docker tag ${DOCKER_REPO}:${VERSION} ${DOCKER_REPO}:alpha && docker push ${DOCKER_REPO}:alpha
+    if [[ ${GIT_BRANCH} == feature/* ]]; then
+        echo "Skipping push for feature brach \"${GIT_BRANCH}\""
+        return 0
+    fi
+
+    docker push ${DOCKER_REPO}:${VERSION}
+    if [[ ${GIT_BRANCH} == "develop" ]]; then
+        docker tag ${DOCKER_REPO}:${VERSION} ${DOCKER_REPO}:alpha
+        docker push ${DOCKER_REPO}:alpha
+    elif [[ ${GIT_BRANCH} == release/* ]]; then
+        docker tag ${DOCKER_REPO}:${VERSION} ${DOCKER_REPO}:beta
+        docker push ${DOCKER_REPO}:beta
+    elif [[ ${GIT_BRANCH} == "master" ]]; then
+        docker tag ${DOCKER_REPO}:${VERSION} ${DOCKER_REPO}:latest
+        docker push ${DOCKER_REPO}:latest
+    fi
 }
 
 if [[ $1 == "version" ]]; then

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/joelanford/scm-bot/pkg/bot"
 	"github.com/joelanford/scm-bot/pkg/prefs"
 	"github.com/joelanford/scm-bot/pkg/scm"
 	"github.com/urfave/cli"
@@ -27,7 +29,7 @@ func init() {
 	cloners = append(cloners, scm.NewGitCloner())
 }
 
-func PrintVersion(ctx *cli.Context) {
+func PrintVersion(c *cli.Context) {
 	fmt.Printf("Version:     %s\nBuild Time:  %s\nBuild User:  %s\nGit Hash:    %s\n", version, buildTime, buildUser, gitHash)
 }
 
@@ -50,8 +52,11 @@ func Run() error {
 		},
 		cli.DurationFlag{
 			Name:  "interval, i",
-			Value: time.Minute * 1,
-			Usage: "`INTERVAL` of scm-bot client preferences scrapes to poll for updates",
+			Usage: "If set, request preferences every `INTERVAL`",
+		},
+		cli.DurationFlag{
+			Name:  "duration, d",
+			Usage: "If set, stop scm-bot after `DURATION`",
 		},
 	}
 
@@ -60,8 +65,7 @@ func Run() error {
 	app.Commands = []cli.Command{
 		cli.Command{
 			Name:   "http",
-			Before: logCommandFlags,
-			Action: pollHttp,
+			Action: runHttp,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "url, u",
@@ -79,8 +83,7 @@ func Run() error {
 		},
 		cli.Command{
 			Name:   "static",
-			Before: logCommandFlags,
-			Action: pollStatic,
+			Action: runStatic,
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "path, p",
@@ -102,28 +105,31 @@ func Run() error {
 	return app.Run(os.Args)
 }
 
-func logGlobalFlags(ctx *cli.Context) error {
-	for _, f := range ctx.GlobalFlagNames() {
-		log.Printf("FLAG --%s=%s", f, ctx.Generic(f))
+func logGlobalFlags(c *cli.Context) error {
+	for _, f := range c.GlobalFlagNames() {
+		log.Printf("GLOBAL FLAG --%s=%s", f, c.GlobalGeneric(f))
 	}
 	return nil
 }
 
-func logCommandFlags(ctx *cli.Context) error {
-	for _, f := range ctx.FlagNames() {
-		log.Printf("FLAG --%s=%s", f, ctx.Generic(f))
+func logCommandFlags(c *cli.Context) error {
+	for _, f := range c.FlagNames() {
+		log.Printf("FLAG --%s=%s", f, c.Generic(f))
 	}
 	return nil
 }
 
-func pollHttp(ctx *cli.Context) error {
-	baseDir := ctx.GlobalString("basedir")
-	interval := ctx.GlobalDuration("interval")
+func runHttp(c *cli.Context) error {
+	logCommandFlags(c)
 
-	url := ctx.String("url")
-	certFile := ctx.String("tls-client-cert")
-	keyFile := ctx.String("tls-client-cert-key")
-	insecureSkipVerify := ctx.IsSet("tls-insecure-skip-verify")
+	baseDir := c.GlobalString("basedir")
+	interval := c.GlobalDuration("interval")
+	duration := c.GlobalDuration("duration")
+
+	url := c.String("url")
+	certFile := c.String("tls-client-cert")
+	keyFile := c.String("tls-client-cert-key")
+	insecureSkipVerify := c.IsSet("tls-insecure-skip-verify")
 
 	if url == "" {
 		return cli.NewExitError("ERROR: \"--url\" must be defined", 1)
@@ -149,25 +155,30 @@ func pollHttp(ctx *cli.Context) error {
 		tlsConf.Certificates = []tls.Certificate{cert}
 	}
 
-	poller := &prefs.HTTPPoller{URL: url, TLSConfig: tlsConf}
-	client := prefs.NewPollClient(baseDir, poller, interval, cloners...)
-	return client.Run()
+	getter := prefs.HTTPGetter{
+		URL:       url,
+		TLSConfig: tlsConf,
+	}
+	return runBot(&getter, baseDir, interval, duration)
 }
 
-func pollStatic(ctx *cli.Context) error {
-	baseDir := ctx.GlobalString("basedir")
-	interval := ctx.GlobalDuration("interval")
+func runStatic(c *cli.Context) error {
+	logCommandFlags(c)
 
-	repoURL := ctx.String("url")
-	repoType := ctx.String("type")
-	repoPath := ctx.String("path")
+	baseDir := c.GlobalString("basedir")
+	interval := c.GlobalDuration("interval")
+	duration := c.GlobalDuration("duration")
+
+	repoURL := c.String("url")
+	repoType := c.String("type")
+	repoPath := c.String("path")
 
 	if repoURL == "" {
 		return cli.NewExitError("ERROR: \"--url\" must be defined", 1)
 	}
 
-	poller := &prefs.StaticPoller{
-		Preferences: &prefs.StaticPreferences{
+	getter := prefs.StaticGetter{
+		Preferences: prefs.Preferences{
 			Repositories: []scm.Repository{
 				{
 					URL:  repoURL,
@@ -177,6 +188,23 @@ func pollStatic(ctx *cli.Context) error {
 			},
 		},
 	}
-	client := prefs.NewPollClient(baseDir, poller, interval, cloners...)
-	return client.Run()
+	return runBot(&getter, baseDir, interval, duration)
+}
+
+func runBot(getter prefs.Getter, baseDir string, interval, duration time.Duration) error {
+	if interval > 0 {
+		getter = prefs.OnInterval(getter, interval)
+	}
+	prefs.UseGetter(getter)
+
+	b := bot.New(baseDir, prefs.DefaultGetter(), cloners...)
+
+	ctx := context.Background()
+	if duration > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, duration)
+		defer cancel()
+	}
+
+	return b.Run(ctx)
 }

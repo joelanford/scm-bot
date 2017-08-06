@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
@@ -51,6 +52,9 @@ func (c *GitCloner) Clone(into string, url string) CloneResult {
 		cr.Success = false
 		cr.Error = ErrExists
 	} else if err != nil {
+		if err == transport.ErrRepositoryNotFound {
+			os.RemoveAll(repoPath)
+		}
 		cr.Success = false
 		cr.Error = err
 	}

@@ -8,34 +8,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Preferences interface {
-	GetRepositories() []scm.Repository
-}
-
-type StaticPreferences struct {
+type Preferences struct {
 	Repositories []scm.Repository `json:"repositories"`
 }
 
-func (p *StaticPreferences) GetRepositories() []scm.Repository {
-	return p.Repositories
-}
-
-func ReadFrom(r io.Reader) (Preferences, error) {
+func ReadJSON(r io.Reader) (*Preferences, error) {
 	d := json.NewDecoder(r)
-	var p StaticPreferences
+	var p Preferences
 	if err := d.Decode(&p); err != nil {
-		return nil, errors.Wrap(err, "could not decode preferences from JSON")
+		return nil, errors.Wrap(err, "could not read JSON preferences")
 	}
 	return &p, nil
-}
-
-type StaticPoller struct {
-	Preferences *StaticPreferences
-}
-
-func (g *StaticPoller) Poll() (Preferences, error) {
-	if g.Preferences == nil {
-		return nil, errors.New("nil preferences")
-	}
-	return g.Preferences, nil
 }

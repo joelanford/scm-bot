@@ -9,6 +9,7 @@ BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M:%S.%N %z %Z')
 USER=${USER:=$USERNAME}
 GIT_HASH=$(git rev-parse HEAD)
 GIT_BRANCH=${TRAVIS_BRANCH:=$(git rev-parse --abbrev-ref HEAD)}
+
 DOCKER_REPO=joelanford/scm-bot
 
 function buildGo() {
@@ -28,10 +29,10 @@ function buildDocker() {
 }
 
 function pushDocker() {
-    [[ ${GIT_BRANCH} != feature/* ]] && docker push ${REPO}:${VERSION}
-    [[ ${GIT_BRANCH} == "master" ]] && docker tag ${REPO}:${VERSION} ${REPO}:latest && docker push ${REPO}:latest
-    [[ ${GIT_BRANCH} == release/* ]] && docker tag ${REPO}:${VERSION} ${REPO}:beta && docker push ${REPO}:beta
-    [[ ${GIT_BRANCH} == "develop" ]] && docker tag ${REPO}:${VERSION} ${REPO}:alpha && docker push ${REPO}:alpha
+    [[ ${GIT_BRANCH} != feature/* ]] && docker push ${DOCKER_REPO}:${VERSION}
+    [[ ${GIT_BRANCH} == "master" ]] && docker tag ${DOCKER_REPO}:${VERSION} ${DOCKER_REPO}:latest && docker push ${DOCKER_REPO}:latest
+    [[ ${GIT_BRANCH} == release/* ]] && docker tag ${DOCKER_REPO}:${VERSION} ${DOCKER_REPO}:beta && docker push ${DOCKER_REPO}:beta
+    [[ ${GIT_BRANCH} == "develop" ]] && docker tag ${DOCKER_REPO}:${VERSION} ${DOCKER_REPO}:alpha && docker push ${DOCKER_REPO}:alpha
 }
 
 if [[ $1 == "version" ]]; then

@@ -6,4 +6,4 @@ services:
 - docker
 
 before_script: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-script: "./build.sh docker push"
+script: "make docker-push"

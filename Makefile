@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 BUILDVAR_PACKAGE := github.com/joelanford/scm-bot/app
 APP_NAME         := scm-bot
 

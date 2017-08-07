@@ -2,6 +2,7 @@ SHELL := /bin/bash
 
 BUILDVAR_PACKAGE := github.com/joelanford/scm-bot/app
 APP_NAME         := scm-bot
+GOOS             := 
 
 DOCKER_REPO  := joelanford
 DOCKER_IMAGE := $(DOCKER_REPO)/$(APP_NAME)
@@ -17,9 +18,6 @@ USER       := $(if $(USER),$(USER),$(USERNAME))
 .PHONY: all
 all: go
 
-ifneq (,$(findstring docker,$(MAKECMDGOALS)))
-    GOOS = linux
-endif
 
 .PHONY: go
 go:
@@ -32,12 +30,13 @@ go:
 		-X '${BUILDVAR_PACKAGE}.gitHash=${GIT_HASH}' \
 		" -o ${APP_NAME}
 
-.PHONY: docker-image
-docker-image: go
+.PHONY: image
+image: GOOS := linux
+image: go
 	docker build -f Dockerfile -t ${DOCKER_IMAGE}:${VERSION} .
 
-.PHONY: docker-push
-docker-push: docker-image
+.PHONY: push
+push: image
 	@if [[ $(GIT_BRANCH) == feature/* ]]; then \
 		echo "Skipping push for feature brach \"${GIT_BRANCH}\""; \
 		return 0; \

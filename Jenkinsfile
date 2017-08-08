@@ -1,10 +1,10 @@
-def label = "scm-bot"
+def label = "jenkins.${env.JOB_NAME.replace("/","_")}.${env.BUILD_NUMBER}"
 
 podTemplate(label: label, 
     containers: [
         containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
-        containerTemplate(name: 'golang', image: 'golang:1-alpine', ttyEnabled: true, command: 'cat')
-        containerTemplate(name: 'docker', image: 'docker:stable-git', ttyEnabled: true, command: 'cat')
+        containerTemplate(name: 'golang', image: 'golang:1-alpine', ttyEnabled: true, command: 'cat'),
+        containerTemplate(name: 'docker', image: 'docker:1.11.2', ttyEnabled: true, command: 'cat')
     ],
     volumes: [
         hostPathVolume(hostPath: '/var/run/docker.sock', mountPath: '/var/run/docker.sock'),
@@ -14,6 +14,7 @@ podTemplate(label: label,
     node(label) {
         stage('Checkout project') {
             checkout scm
+            sh "git fetch --tags"
         }
 
         stage('Prep build containers') {
@@ -21,7 +22,13 @@ podTemplate(label: label,
                 sh "apk update && apk add bash git make"
             }
             container('docker') {
-                sh "apk update && apk add bash make"
+                sh "apk update && apk add bash git make"
+            }
+        }
+
+        stage('Info') {
+            container('golang') {
+                sh "USER=jenkins GIT_BRANCH=${env.BRANCH_NAME} make info"
             }
         }
 
@@ -29,28 +36,29 @@ podTemplate(label: label,
             container('golang') {
                 sh "mkdir -p /go/src/github.com/joelanford"
                 sh "ln -s `pwd` /go/src/github.com/joelanford/scm-bot"
-                sh "make -C /go/src/github.com/joelanford/scm-bot build"
+                sh "(cd /go/src/github.com/joelanford/scm-bot && USER=jenkins make build)"
             }
         }
 
         stage ('Test') {
             container('golang') {
-                sh "make -C /go/src/github.com/joelanford/scm-bot test"
+                sh "(cd /go/src/github.com/joelanford/scm-bot && make test)"
             }
         }
 
         stage ('Build Docker Image') {
             container('docker') {
-                withCredentials() {
-                    sh "docker login -u ${env.USERNAME} -p ${env.PASSWORD}"
-                    sh "make -C /go/src/github.com/joelanford/scm-bot image"
-                }
+                sh "make image"
             }
         }
 
         stage ('Push Docker Image') {
             container('docker') {
-                sh "GIT_BRANCH=${env.BRANCH_NAME} make -C /go/src/github.com/joelanford/scm-bot push"
+                withCredentials([usernamePassword(credentialsId: 'joelanford-dockerhub',
+                                                usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    sh "docker login -u '${env.USERNAME}' -p '${env.PASSWORD}'"
+                    sh "GIT_BRANCH=${env.BRANCH_NAME} make push"
+                }
             }
         }
     }

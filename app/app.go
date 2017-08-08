@@ -40,7 +40,7 @@ func Run() error {
 	app.Name = appName
 	app.HelpName = appName
 	app.Version = version
-	if compiled, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", buildTime); err == nil {
+	if compiled, err := time.Parse("2006-01-02 15:04:05 -0700 MST", buildTime); err == nil {
 		app.Compiled = compiled
 	}
 

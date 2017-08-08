@@ -7,16 +7,26 @@ GOOS             :=
 DOCKER_REPO  := joelanford
 DOCKER_IMAGE := $(DOCKER_REPO)/$(APP_NAME)
 
-TAG        ?= $(shell git tag -l --points-at HEAD)
+TAG        ?= $(shell git tag -l --points-at HEAD | head -1)
 VERSION    := $(if $(TAG),$(TAG),$(shell git describe --always --dirty --long))
 GIT_HASH   ?= $(shell git rev-parse HEAD)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-BUILD_TIME := $(shell date -u '+%Y-%m-%d %H:%M:%S.%N %z %Z')
-USER       := $(if $(USER),$(USER),$(USERNAME))
+BUILD_TIME := $(shell date -u '+%Y-%m-%d %H:%M:%S %z %Z')
+USER       ?= $(USERNAME)
 
 .PHONY: all
-all: go
+all: build
+
+.PHONY: info
+info:
+	@echo "DOCKER_IMAGE: ${DOCKER_IMAGE}"
+	@echo "TAG:          ${TAG}"
+	@echo "VERSION:      ${VERSION}"
+	@echo "GIT_HASH:     ${GIT_HASH}"
+	@echo "GIT_BRANCH:   ${GIT_BRANCH}"
+	@echo "BUILD_TIME:   ${BUILD_TIME}"
+	@echo "USER:         ${USER}"
 
 .PHONY: build
 build:

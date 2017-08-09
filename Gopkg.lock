@@ -20,6 +20,12 @@
   revision = "feef008d51ad2b3778f85d387ccf91735543008d"
 
 [[projects]]
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  revision = "a3f95b5c423586578a4e099b11a46c2479628cac"
+  version = "1.0.2"
+
+[[projects]]
   name = "github.com/src-d/gcfg"
   packages = [".","scanner","token","types"]
   revision = "f187355171c936ac84a82793659ebb4936bc1c23"
@@ -50,6 +56,12 @@
   revision = "f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "47bdb838cce8879fca08207206a5dfde2f2538bc"
+
+[[projects]]
   name = "gopkg.in/src-d/go-billy.v3"
   packages = [".","helper/chroot","helper/polyfill","osfs","util"]
   revision = "c329b7bc7b9d24905d2bc1b85bfa29f7ae266314"
@@ -70,6 +82,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "43c5e6a1830b41c9883ed7ab03be84e2414b42f97c9f3cdbfa642e2812df279a"
+  inputs-digest = "44a6ddb25678bb5c3e1fad425bd5d3bbef175268296e0a4adae3647b0a83b576"
   solver-name = "gps-cdcl"
   solver-version = 1

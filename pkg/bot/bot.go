@@ -2,8 +2,9 @@ package bot
 
 import (
 	"context"
-	"log"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/joelanford/scm-bot/pkg/prefs"
 	"github.com/joelanford/scm-bot/pkg/scm"
@@ -13,6 +14,7 @@ type Bot struct {
 	baseDirectory string
 	getter        prefs.Getter
 	cloners       []scm.Cloner
+	log           *log.Entry
 }
 
 func New(baseDirectory string, getter prefs.Getter, cloners ...scm.Cloner) *Bot {
@@ -23,12 +25,13 @@ func New(baseDirectory string, getter prefs.Getter, cloners ...scm.Cloner) *Bot 
 		baseDirectory: baseDirectory,
 		getter:        getter,
 		cloners:       cloners,
+		log:           log.WithFields(log.Fields{"component": "bot"}),
 	}
 }
 
 func (b *Bot) Run(ctx context.Context) error {
-	log.Println("bot: started")
-	defer log.Println("bot: stopped")
+	b.log.Infoln("started")
+	defer b.log.Infoln("stopped")
 
 	preferences := b.getter.Get(ctx)
 
@@ -42,20 +45,20 @@ loop:
 				break loop
 			}
 			if p.Err != nil {
-				log.Printf("bot: could not get preferences: %s", p.Err)
+				b.log.Warnf("could not get preferences: %s", p.Err)
 			} else if repos := p.Preferences.Repositories; len(repos) == 0 {
-				log.Printf("bot: no repositories listed in preferences")
+				b.log.Warnf("no repositories listed in preferences")
 			} else {
 				results := scm.CloneAll(b.baseDirectory, b.cloners, repos)
 				for result := range results {
 					if result.Error == scm.ErrExists {
-						log.Printf("bot: skipped cloning repository \"%s\" at path \"%s\": %s", result.URL, result.Path, result.Error)
+						b.log.Infof("skipped cloning repository \"%s\" at path \"%s\": %s", result.URL, result.Path, result.Error)
 					} else if result.Error == scm.ErrNoCloner {
-						log.Printf("bot: could not clone repo \"%s\": %s", result.URL, result.Error)
+						b.log.Warnf("could not clone repo \"%s\": %s", result.URL, result.Error)
 					} else if result.Error != nil {
-						log.Printf("bot: could not clone repo \"%s\" at path \"%s\": %s", result.URL, result.Path, result.Error)
+						b.log.Warnf("could not clone repo \"%s\" at path \"%s\": %s", result.URL, result.Path, result.Error)
 					} else {
-						log.Printf("bot: cloned repo \"%s\" at path \"%s\"", result.URL, result.Path)
+						b.log.Infof("cloned repo \"%s\" at path \"%s\"", result.URL, result.Path)
 					}
 				}
 			}

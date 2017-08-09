@@ -1,13 +1,13 @@
 package main
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/joelanford/scm-bot/app"
 )
 
 func main() {
 	if err := app.Run(); err != nil {
-		log.Printf("error: %s", err)
+		log.WithField("component", "main").Fatalln(err)
 	}
 }

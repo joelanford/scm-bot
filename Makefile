@@ -12,7 +12,6 @@ VERSION    := $(if $(TAG),$(TAG),$(shell git describe --always --dirty --long))
 GIT_HASH   ?= $(shell git rev-parse HEAD)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 
-BUILD_TIME := $(shell date -u '+%Y-%m-%d %H:%M:%S %z %Z')
 USER       ?= $(USERNAME)
 
 .PHONY: all
@@ -25,7 +24,6 @@ info:
 	@echo "VERSION:      ${VERSION}"
 	@echo "GIT_HASH:     ${GIT_HASH}"
 	@echo "GIT_BRANCH:   ${GIT_BRANCH}"
-	@echo "BUILD_TIME:   ${BUILD_TIME}"
 	@echo "USER:         ${USER}"
 
 .PHONY: build
@@ -34,7 +32,6 @@ build:
 		-extldflags '-static' \
 		-X '${BUILDVAR_PACKAGE}.appName=${APP_NAME}' \
 		-X '${BUILDVAR_PACKAGE}.version=${VERSION}' \
-		-X '${BUILDVAR_PACKAGE}.buildTime=${BUILD_TIME}' \
 		-X '${BUILDVAR_PACKAGE}.buildUser=${USER}' \
 		-X '${BUILDVAR_PACKAGE}.gitHash=${GIT_HASH}' \
 		" -o ${APP_NAME}

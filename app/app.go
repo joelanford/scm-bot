@@ -21,7 +21,6 @@ import (
 var (
 	appName   string
 	version   string
-	buildTime string
 	buildUser string
 	gitHash   string
 
@@ -35,7 +34,7 @@ func init() {
 }
 
 func printVersion(c *cli.Context) {
-	fmt.Printf("Version:     %s\nBuild Time:  %s\nBuild User:  %s\nGit Hash:    %s\n", version, buildTime, buildUser, gitHash)
+	fmt.Printf("Version:     %s\nBuild User:  %s\nGit Hash:    %s\n", version, buildUser, gitHash)
 }
 
 func Run() error {
@@ -49,9 +48,6 @@ func Run() error {
 	app.Usage = "Automatically clone source code repositories"
 
 	app.Version = version
-	if compiled, err := time.Parse("2006-01-02 15:04:05 -0700 MST", buildTime); err == nil {
-		app.Compiled = compiled
-	}
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{

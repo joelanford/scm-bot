@@ -2,7 +2,7 @@ def label = "jenkins.${env.JOB_NAME.replace("/","_")}.${env.BUILD_NUMBER}"
 
 podTemplate(label: label, 
     containers: [
-        containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:2.62-alpine', args: '${computer.jnlpmac} ${computer.name}'),
+        containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:latest', args: '${computer.jnlpmac} ${computer.name}'),
         containerTemplate(name: 'golang', image: 'golang:1-alpine', ttyEnabled: true, command: 'cat'),
         containerTemplate(name: 'docker', image: 'docker:1.11.2', ttyEnabled: true, command: 'cat')
     ],

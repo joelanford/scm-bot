@@ -38,17 +38,19 @@ build:
 
 .PHONY: test
 test:
-	CGO_ENABLED=0 GOOS=${GOOS} go test `go list ./... | grep -v vendor`
+	CGO_ENABLED=0 GOOS=${GOOS} go test `go list ./...`
 
 .PHONY: image
 image: GOOS := linux
 image:
-	docker build -f Dockerfile -t ${DOCKER_IMAGE}:${VERSION} .
+	docker build -f Dockerfile --build-arg GIT_COMMIT=${GIT_HASH} -t ${DOCKER_IMAGE}:${VERSION} .
 
 .PHONY: push
 push:
 	@if [[ ${GIT_BRANCH} == feature/* ]]; then \
-		echo "Skipping push for feature brach \"${GIT_BRANCH}\""; \
+		echo "Skipping push for feature branch \"${GIT_BRANCH}\""; \
+	elif [[ ${VERSION} == *-dirty ]]; then \
+		echo "Skipping push for dirty version \"${VERSION}\""; \
 	else \
 		docker push ${DOCKER_IMAGE}:${VERSION}; \
 		EXTRA_IMAGE_TAG=""; \

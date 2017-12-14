@@ -1,4 +1,4 @@
-def label = "jenkins.${env.JOB_NAME.replace("/","_")}.${env.BUILD_NUMBER}"
+def label = "jenkins.${env.JOB_NAME.replace("/","_").replace("%2F","_")}.${env.BUILD_NUMBER}"
 
 podTemplate(label: label, 
     containers: [

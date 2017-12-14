@@ -25,6 +25,7 @@ func (g *IntervalGetter) Get(ctx context.Context) <-chan GetResult {
 			}
 		}
 		ticker := time.NewTicker(g.Interval)
+		defer ticker.Stop()
 
 		select {
 		case <-ctx.Done():

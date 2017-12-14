@@ -23,17 +23,17 @@ var defaultGetter getter
 func (g *getter) Get(ctx context.Context) <-chan GetResult {
 	resChan := make(chan GetResult)
 
-	var wg sync.WaitGroup
-	for _, getter := range g.getters {
-		wg.Add(1)
-		go func(c <-chan GetResult) {
-			for res := range c {
-				resChan <- res
-			}
-			wg.Done()
-		}(getter.Get(ctx))
-	}
 	go func() {
+		var wg sync.WaitGroup
+		for _, getter := range g.getters {
+			wg.Add(1)
+			go func(c <-chan GetResult) {
+				for res := range c {
+					resChan <- res
+				}
+				wg.Done()
+			}(getter.Get(ctx))
+		}
 		wg.Wait()
 		close(resChan)
 	}()

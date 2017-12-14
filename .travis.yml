@@ -1,9 +1,18 @@
 language: go
+
 go:
-- 1.8
+  - 1.9
+
 sudo: required
+
 services:
-- docker
+  - docker
+
+env:
+  global:
+    - TAG=$TRAVIS_TAG
+    - GIT_HASH=$TRAVIS_COMMIT
+    - GIT_BRANCH=$TRAVIS_BRANCH
 
 before_script: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-script: "make docker-push"
+script: "make build test image push"

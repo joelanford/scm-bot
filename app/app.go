@@ -3,46 +3,51 @@ package app
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
-	"log"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
+
 	"github.com/joelanford/scm-bot/pkg/bot"
 	"github.com/joelanford/scm-bot/pkg/prefs"
 	"github.com/joelanford/scm-bot/pkg/scm"
-	"github.com/urfave/cli"
 )
 
 var (
 	appName   string
 	version   string
-	buildTime string
 	buildUser string
 	gitHash   string
 
 	cloners []scm.Cloner
+
+	log = logrus.WithField("component", "app")
 )
 
 func init() {
 	cloners = append(cloners, scm.NewGitCloner())
 }
 
-func PrintVersion(c *cli.Context) {
-	fmt.Printf("Version:     %s\nBuild Time:  %s\nBuild User:  %s\nGit Hash:    %s\n", version, buildTime, buildUser, gitHash)
+func printVersion(c *cli.Context) {
+	fmt.Printf("Version:     %s\nBuild User:  %s\nGit Hash:    %s\n", version, buildUser, gitHash)
 }
 
 func Run() error {
-	cli.VersionPrinter = PrintVersion
-	app := cli.NewApp()
+	cli.OsExiter = func(_ int) {}
+	cli.ErrWriter = ioutil.Discard
+	cli.VersionPrinter = printVersion
 
+	app := cli.NewApp()
 	app.Name = appName
 	app.HelpName = appName
+	app.Usage = "Automatically clone source code repositories"
+
 	app.Version = version
-	if compiled, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", buildTime); err == nil {
-		app.Compiled = compiled
-	}
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -58,9 +63,19 @@ func Run() error {
 			Name:  "duration, d",
 			Usage: "If set, stop scm-bot after `DURATION`",
 		},
+		cli.StringFlag{
+			Name:  "log-level,l",
+			Usage: "Log level (one of panic, fatal, error, warn, info, debug)",
+			Value: "info",
+		},
+		cli.StringFlag{
+			Name:  "log-fmt, f",
+			Usage: "Log format (one of text, json)",
+			Value: "text",
+		},
 	}
 
-	app.Before = logGlobalFlags
+	app.Before = before
 
 	app.Commands = []cli.Command{
 		cli.Command{
@@ -105,16 +120,57 @@ func Run() error {
 	return app.Run(os.Args)
 }
 
+func before(c *cli.Context) error {
+	err1 := setLogFormat(c.GlobalString("log-fmt"))
+	err2 := setLogLevel(c.GlobalString("log-level"))
+
+	if err1 != nil {
+		return err1
+	} else if err2 != nil {
+		return err2
+	}
+	return logGlobalFlags(c)
+}
+
+func setLogLevel(logLevel string) error {
+	level, err := logrus.ParseLevel(logLevel)
+	if err != nil {
+		return err
+	}
+	logrus.SetLevel(level)
+	return nil
+}
+
+func setLogFormat(logFmt string) error {
+	switch logFmt {
+	case "text":
+		logrus.SetFormatter(&logrus.TextFormatter{})
+	case "json":
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	default:
+		return fmt.Errorf("unrecognized log format: \"%s\"", logFmt)
+	}
+	return nil
+}
+
 func logGlobalFlags(c *cli.Context) error {
 	for _, f := range c.GlobalFlagNames() {
-		log.Printf("GLOBAL FLAG --%s=%s", f, c.GlobalGeneric(f))
+		log.WithFields(logrus.Fields{
+			"scope":     "global",
+			"flagName":  f,
+			"flagValue": c.GlobalGeneric(f),
+		}).Info("global flag set")
 	}
 	return nil
 }
 
 func logCommandFlags(c *cli.Context) error {
 	for _, f := range c.FlagNames() {
-		log.Printf("FLAG --%s=%s", f, c.Generic(f))
+		log.WithFields(logrus.Fields{
+			"scope":     "command",
+			"flagName":  f,
+			"flagValue": c.Generic(f),
+		}).Info("command flag set")
 	}
 	return nil
 }
@@ -132,7 +188,7 @@ func runHttp(c *cli.Context) error {
 	insecureSkipVerify := c.IsSet("tls-insecure-skip-verify")
 
 	if url == "" {
-		return cli.NewExitError("ERROR: \"--url\" must be defined", 1)
+		return errors.New("--url flag must be defined")
 	}
 
 	tlsConf := &tls.Config{
@@ -174,7 +230,7 @@ func runStatic(c *cli.Context) error {
 	repoPath := c.String("path")
 
 	if repoURL == "" {
-		return cli.NewExitError("ERROR: \"--url\" must be defined", 1)
+		return errors.New("--url flag must be defined")
 	}
 
 	getter := prefs.StaticGetter{
